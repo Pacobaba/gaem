@@ -1,0 +1,483 @@
+#include <iostream>
+#include <stdlib.h>
+#include <time.h>
+#include <SFML/Window.hpp>
+#include <SFML/System.hpp>
+#include <SFML/Graphics.hpp>
+#include <math.h>
+#include <string.h>
+using namespace std;
+struct drum
+{
+    int a,b;
+} margine[100];
+
+const float PI=3.1415;
+const int nr_culori=6, max_orizontala=13, max_verticala=10, startlinii =3;
+
+int tabla[100][100];
+int YAY=0;
+bool OK,sterg;
+int contorlinii=1,greseli=5;
+int numarbilute,xi,yi,nrliniimargine=0;
+int culcurenta=rand() % nr_culori + 1,culurmatoare=rand() % nr_culori + 1;
+int xltc1,yltc1,xltc2,yltc2;
+
+string minge(int numar)
+{
+    char s[20]="ball",c[20];
+    itoa(numar,c,10);
+    strcat(s,c);
+    strcat(s,".png");
+    return s;
+
+}
+void linetocells(int a, int b)
+{
+    int x1,y1,x2,y2;
+    if(a%2==0)
+    {
+        y1=b-1;
+        y2=b;
+        x1=(a+1)/2;
+        x2=x1;
+        xltc1=x1;
+        yltc1=y1;
+        xltc2=x2;
+        yltc2=y2;
+    }
+    else
+    {
+        x1=(a-1)/2;
+        x2=(a+1)/2;
+        if(b%2==1)
+            if(a%4==3)
+            {
+                y1=(b+1)/2;
+                y2=(b-1)/2;
+            }
+            else
+            {
+                y1=(b-1)/2;
+                y2=(b+1)/2;
+            }
+        else
+        {
+            y1=b/2;
+            y2=b/2;
+        }
+        xltc1=x1;
+        yltc1=y1;
+        xltc2=x2;
+        yltc2=y2;
+    }
+}
+
+void cellstoline(int x1, int y1, int x2, int y2)
+{
+    int a,b;
+    if(x1==x2)
+    {
+        a=2*x1;
+        if(y2>y1)
+            b=y2;
+        else
+            b=y1;
+    }
+    else
+    {
+        if(x1>x2)
+        {
+            swap(x1,x2);
+            swap(y1,y2);
+        }
+        a=2*x1+1;
+        if((x1+contorlinii)%2==0)
+            if(y2>y1)
+                b=2*y2-1;
+            else
+                b=2*y2;
+
+        else if(y2==y1)
+            b=2*y2;
+        else
+            b=2*y2+1;
+
+    }
+    margine[nrliniimargine].a=a;
+    margine[nrliniimargine++].b=b;
+}
+
+void afisareTabla()
+{
+    for(int i=1; i<=max_verticala; i++)
+    {
+        if((i+contorlinii)%2==1)
+            cout<<" ";
+        for(int j=1; j<=max_orizontala; j++)
+            if(!((i+contorlinii)%2==1 && j==10))
+            {
+                cout<<tabla[i][j]<<" ";
+            }
+        cout<<endl;
+    }
+    cout<<"\n\n\n";
+
+}
+void initializareTabla()
+{
+    for(int i=1; i<=max_verticala; i++)
+        for(int j=1; j<=max_orizontala; j++)
+            if(i<=startlinii)
+                tabla[i][j]=rand() % nr_culori + 1;
+            else
+                tabla[i][j]=0;
+
+}
+
+void urmatoareaLinie()
+{
+    for(int i=max_verticala-1; i>=1; i--)
+    {
+        for(int j=1; j<=max_orizontala; j++)
+            tabla[i+1][j]=tabla[i][j];
+    }
+    for(int j=1; j<=max_orizontala; j++)
+        tabla[1][j]=rand() % nr_culori + 1;
+
+    contorlinii++;
+}
+void fillip(int x,int y,int culoare)
+{
+    if(x<=max_verticala && x>0 && y>0 && y<=max_orizontala)
+    {
+        if(tabla[x][y]==culoare)
+        {
+            if(sterg)
+                tabla[x][y]=0;
+            else
+                tabla[x][y]=-culoare;
+            numarbilute++;
+            fillip(x-1,y,culoare);
+            fillip(x,y+1,culoare);
+            fillip(x+1,y,culoare);
+            fillip(x,y-1,culoare);
+            if((x+contorlinii)%2==1)
+            {
+                fillip(x-1,y+1,culoare);
+                fillip(x+1,y+1,culoare);
+            }
+            else
+            {
+                fillip(x+1,y-1,culoare);
+                fillip(x-1,y-1,culoare);
+            }
+        }
+
+    }
+}
+
+void fillipdecaderi(int x,int y)
+{
+    if(x<=max_verticala && x>0 && y>0 && y<=max_orizontala)
+    {
+        if(tabla[x][y]>0 || (sterg && tabla[x][y]<0))
+        {
+            if(x==1)
+                OK=1;
+            if(sterg)
+                tabla[x][y]=0;
+            else
+                tabla[x][y]*=-1;
+            fillipdecaderi(x-1,y);
+            fillipdecaderi(x,y+1);
+            fillipdecaderi(x+1,y);
+            fillipdecaderi(x,y-1);
+            if((x+contorlinii)%2==1)
+            {
+                fillipdecaderi(x-1,y+1);
+                fillipdecaderi(x+1,y+1);
+
+            }
+            else
+            {
+                fillipdecaderi(x+1,y-1);
+                fillipdecaderi(x-1,y-1);
+            }
+        }
+
+    }
+}
+bool marginit(int x, int y)
+{
+    int relativOK=0;
+    if(x<=max_verticala && x>0 && y>0 && y<=max_orizontala)
+    {
+        if(tabla[x][y]>0)
+        {
+            if(tabla[x-1][y]==0 && (x-1<=max_verticala && x-1>0 && y>0 && y<=max_orizontala))
+            {
+                cellstoline(x,y,x-1,y);
+                relativOK=1;
+            }
+            if(tabla[x][y+1]==0 && (x<=max_verticala && x>0 && y+1>0 && y+1<=max_orizontala))
+            {
+                cellstoline(x,y,x,y+1);
+                relativOK=1;
+            }
+            if(tabla[x+1][y]==0 && (x+1<=max_verticala && x+1>0 && y>0 && y<=max_orizontala))
+            {
+                cellstoline(x,y,x+1,y);
+                relativOK=1;
+            }
+            if(tabla[x][y-1]==0 && (x<=max_verticala && x>0 && y-1>0 && y-1<=max_orizontala))
+            {
+                cellstoline(x,y,x,y-1);
+                relativOK=1;
+            }
+            if((x+contorlinii)%2==1)
+            {
+                if(tabla[x-1][y+1]==0 && (x-1<=max_verticala && x-1>0 && y+1>0 && y+1<=max_orizontala))
+                {
+                    cellstoline(x,y,x-1,y+1);
+                    relativOK=1;
+                }
+                if(tabla[x+1][y+1]==0 && (x+1<=max_verticala && x+1>0 && y+1>0 && y+1<=max_orizontala))
+                {
+                    cellstoline(x,y,x+1,y+1);
+                    relativOK=1;
+                }
+            }
+            else
+            {
+                if(tabla[x+1][y-1]==0 && (x+1<=max_verticala && x+1>0 && y-1>0 && y-1<=max_orizontala))
+                {
+                    cellstoline(x,y,x+1,y-1);
+                    relativOK=1;
+                }
+                if(tabla[x-1][y-1]==0 && (x-1<=max_verticala && x-1>0 && y-1>0 && y-1<=max_orizontala))
+                {
+                    cellstoline(x,y,x-1,y-1);
+                    relativOK=1;
+                }
+            }
+        }
+    }
+    if(relativOK)
+        return 1;
+    else
+        return 0;
+}
+void aflaremargine(int x, int y)
+{
+    if(x<=max_verticala && x>=0 && y>=0 && y<=max_orizontala)
+    {
+        if(marginit(x,y))
+        {
+            tabla[x][y]*=-1;
+            aflaremargine(x-1,y);
+            aflaremargine(x,y+1);
+            aflaremargine(x+1,y);
+            aflaremargine(x,y-1);
+            if((x+contorlinii)%2==1)
+            {
+                aflaremargine(x-1,y+1);
+                aflaremargine(x+1,y+1);
+
+            }
+            else
+            {
+                aflaremargine(x+1,y-1);
+                aflaremargine(x-1,y-1);
+            }
+        }
+
+    }
+
+}
+void resettopositives()
+{
+    for(int i=1; i<=max_verticala; i++)
+        for(int j=1; j<=max_orizontala; j++)
+            if(tabla[i][j]<0)
+                tabla[i][j]*=-1;
+}
+void punereBila(int x, int y, int culoare)
+{
+    numarbilute=0;
+    sterg=0;
+    fillip(x,y,culoare);
+    if(numarbilute>2)
+    {
+        sterg=1;
+        fillip(x,y,-culoare);
+        for(int i=max_verticala; i>=1; i--)
+            for(int j=max_orizontala; j>=1; j--)
+                if(tabla[i][j]>0)
+                {
+                    OK=0;
+                    sterg=0;
+                    fillipdecaderi(i,j);
+                    if(!OK)
+                    {
+                        sterg=1;
+                        fillipdecaderi(i,j);
+                    }
+                }
+        resettopositives();
+    }
+    else
+    {
+        greseli--;
+        fillip(x,y,-culoare);
+    }
+    for(int i=1; i<=max_verticala; i++)
+        for(int j=1; j<=max_orizontala; j++)
+            aflaremargine(i,j);
+    resettopositives();
+}
+int pierdut()
+{
+    for(int i=1; i<=max_orizontala; i++)
+        if(tabla[max_verticala][i]>0)
+            return 1;
+    return 0;
+}
+int castigat()
+{
+    for(int i=1; i<=max_verticala; i++)
+        for(int j=1; j<=max_orizontala; j++)
+            if(tabla[i][j]>0)
+                return 0;
+    return 1;
+}
+void GUI()
+{
+    culcurenta=culurmatoare;
+    culurmatoare=rand() % nr_culori + 1;
+    cout<<culcurenta<<", "<<culurmatoare<<"| "<<greseli<<" greseli"<<endl;
+    cout<<"x=";
+    cin>>xi;
+    cout<<"y=";
+    cin>>yi;
+}
+void gamelogic()
+{
+    srand (time(NULL));
+    initializareTabla();
+    while(!pierdut())
+    {
+        afisareTabla();
+        GUI();
+        tabla[xi][yi]=culcurenta;
+        punereBila(xi,yi,culcurenta);
+        if(castigat())
+        {
+            YAY=1;
+            break;
+        }
+        if(greseli<=0)
+        {
+            greseli=3;
+            urmatoareaLinie();
+        }
+    }
+    if(YAY)
+        cout<<"Ai castigat!\n";
+    else
+        cout<<"Naspa :(\n";
+    afisareTabla();
+}
+int main()
+{
+    initializareTabla();
+    sf::RenderWindow window(sf::VideoMode(800, 600), "Bubbles");
+    window.setFramerateLimit(0);
+    window.setVerticalSyncEnabled(true);
+    sf::Texture tsageata,tball,tbackg;
+    sf::Sprite sageata,ball,backg;
+    tsageata.loadFromFile("arrow.png");
+    sageata.setTexture(tsageata);
+    tbackg.loadFromFile("backg.png");
+    backg.setTexture(tbackg);
+    sageata.setOrigin(0.f, 20.f);
+    sageata.setScale(2.f,2.f);
+    ball.setScale(1.f, 1.f);
+    backg.setScale(15.f,15.f);
+    backg.setPosition(0.f,0.f);
+    sageata.setPosition(300.f, 560.f);
+    while (window.isOpen())
+    {
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+            if(event.type == sf::Event::TextEntered)
+            {
+                if (event.text.unicode==114)
+                {
+                    initializareTabla();
+                }
+            }
+        }
+
+        if(!pierdut())
+        {
+            sf::Vector2i localPosition = sf::Mouse::getPosition(window);
+            sageata.setRotation((180+atan2f(560 -localPosition.y, 300 - localPosition.x)*180.f/ PI));
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+            {
+                ///xi ( in functie de mouse)
+                ///yi (in functie de mouse)
+                culcurenta=culurmatoare;
+                culurmatoare=rand() % nr_culori + 1;
+                tabla[xi][yi]=culcurenta;
+                punereBila(xi,yi,culcurenta);
+            }
+            if(castigat())
+                YAY=1;
+            if(greseli<=0)
+            {
+                greseli=3;
+                urmatoareaLinie();
+            }
+        }
+        window.clear();
+        backg.setPosition(200.f,0.f);
+        window.draw(backg);
+        backg.setPosition(0.f,0.f);
+        window.draw(backg);
+        window.draw(sageata);
+        ball.setScale(0.5,0.5);
+        ball.setPosition(290.f,550.f);
+        tball.loadFromFile(minge(culcurenta));
+        ball.setTexture(tball);
+        window.draw(ball);
+        ball.setPosition(260.f,550.f);
+        tball.loadFromFile(minge(culurmatoare));
+        ball.setTexture(tball);
+        window.draw(ball);
+        ball.setScale(1.f,1.f);
+        for(int i=1; i<=max_verticala; i++)
+        {
+            for(int j=1; j<=max_orizontala; j++)
+            {
+                if(!((i+contorlinii)%2==1 && j==max_orizontala))
+                {
+                    if((i+contorlinii)%2==1)
+                        ball.setPosition(40*j+20, 40*i);
+                    else
+                        ball.setPosition(40*j, 40*i);
+                    if(tabla[i][j]>0)
+                    {
+                        tball.loadFromFile(minge(tabla[i][j]));
+                        ball.setTexture(tball);
+                        window.draw(ball);
+                    }
+                }
+            }
+        }
+        window.display();
+    }
+}
